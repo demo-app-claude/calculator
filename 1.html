@@ -1,0 +1,2369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Онлайн-расчёт стоимости мебели</title>
+  <style>
+    /* =====================================================================
+       БАЗОВАЯ ПАЛИТРА И ПЕРЕМЕННЫЕ
+       Основной акцентный цвет (--accent) автоматически задаётся из CONFIG.accentColor
+       ===================================================================== */
+    :root {
+      --bg-page: #f5f6f8;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f0f2f5;
+      --border-color: #dcdfe6;
+      --border-strong: #c2c7d0;
+      --text-primary: #181a1f;
+      --text-secondary: #5a606d;
+      --text-muted: #848b98;
+
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-soft: rgba(37, 99, 235, 0.08);
+      --accent-border: rgba(37, 99, 235, 0.35);
+
+      --warn-bg: #fff8eb;
+      --warn-border: #f5d08a;
+      --warn-text: #8a5300;
+
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-text: #b91c1c;
+
+      --success-bg: #ecfdf5;
+      --success-border: #a7f3d0;
+      --success-text: #065f46;
+
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --t-fast: 160ms;
+      --t-exit: 180ms;
+      --t-enter: 340ms;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+
+      --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.05);
+      --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.07);
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* =====================================================================
+       ШАПКА (ТЕКСТОВЫЙ ЛОГОТИП С АКЦЕНТНОЙ ТОЧКОЙ И ПОДЗАГОЛОВКОМ)
+       ===================================================================== */
+    .topbar {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .topbar-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
+      transition: opacity var(--t-fast) var(--ease-out);
+    }
+
+    .brand-logo:hover {
+      opacity: 0.85;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .topbar-note {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* =====================================================================
+       ОСНОВНОЙ КОНТЕЙНЕР И ЗАГОЛОВОК
+       ===================================================================== */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .hero {
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 680px;
+    }
+
+    /* =====================================================================
+       КЛИКАБЕЛЬНЫЙ ИНДИКАТОР 3 ШАГОВ И АНИМИРОВАННАЯ ПОЛОСА ПРОГРЕССА
+       ===================================================================== */
+    .stepper-wrap {
+      margin-bottom: 28px;
+    }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .step-pill {
+      min-height: 48px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-align: left;
+      cursor: pointer;
+      transition:
+        border-color var(--t-fast) var(--ease-out),
+        background-color var(--t-fast) var(--ease-out),
+        color var(--t-fast) var(--ease-out),
+        box-shadow 220ms var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .step-pill:hover:not(:disabled) {
+      border-color: var(--border-strong);
+    }
+
+    .step-pill:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+
+    .step-pill:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .step-pill.active {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--text-primary);
+      font-weight: 600;
+      box-shadow: 0 2px 10px var(--accent-soft);
+    }
+
+    .step-pill.done {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: var(--bg-subtle);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition:
+        background-color 260ms var(--ease-out),
+        color 260ms var(--ease-out),
+        transform 260ms var(--ease-out);
+    }
+
+    .step-pill.active .step-num {
+      background-color: var(--accent);
+      color: #ffffff;
+      transform: scale(1.08);
+    }
+
+    .step-pill.done .step-num {
+      background-color: var(--text-primary);
+      color: #ffffff;
+    }
+
+    .stepper-track {
+      height: 3px;
+      width: 100%;
+      background-color: var(--border-color);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .stepper-progress {
+      height: 100%;
+      width: 33.333%;
+      background-color: var(--accent);
+      border-radius: 999px;
+      transition: width 0.38s var(--ease-out), background-color 240ms var(--ease-out);
+    }
+
+    /* =====================================================================
+       ДВУХФАЗНАЯ НАПРАВЛЕННАЯ АНИМАЦИЯ ПЕРЕХОДА МЕЖДУ ОКНАМИ 1, 2 И 3
+       ===================================================================== */
+    .screens-viewport {
+      position: relative;
+    }
+
+    .screen {
+      display: none;
+      will-change: transform, opacity;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    /* Фаза 1: уходящее окно (выход вперёд или назад) */
+    .screen.exit-forward {
+      animation: stepExitForward var(--t-exit) var(--ease-out) both;
+      pointer-events: none;
+    }
+
+    .screen.exit-backward {
+      animation: stepExitBackward var(--t-exit) var(--ease-out) both;
+      pointer-events: none;
+    }
+
+    /* Фаза 2: входящее окно (вход вперёд или назад) */
+    .screen.enter-forward {
+      animation: stepEnterForward var(--t-enter) var(--ease-out) both;
+    }
+
+    .screen.enter-backward {
+      animation: stepEnterBackward var(--t-enter) var(--ease-out) both;
+    }
+
+    @keyframes stepExitForward {
+      from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+      to {
+        opacity: 0;
+        transform: translate3d(-24px, 0, 0);
+      }
+    }
+
+    @keyframes stepExitBackward {
+      from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+      to {
+        opacity: 0;
+        transform: translate3d(24px, 0, 0);
+      }
+    }
+
+    @keyframes stepEnterForward {
+      from {
+        opacity: 0;
+        transform: translate3d(28px, 0, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    @keyframes stepEnterBackward {
+      from {
+        opacity: 0;
+        transform: translate3d(-28px, 0, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    /* Каскадное появление карточек на Шаге 1 и Шаге 2 */
+    @keyframes cardFadeIn {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 12px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: cardFadeIn 0.36s var(--ease-out) both;
+      animation-delay: calc(var(--i, 0) * 45ms);
+      transition:
+        border-color var(--t-fast) var(--ease-out),
+        box-shadow 220ms var(--ease-out),
+        transform 220ms var(--ease-out);
+    }
+
+    .card:hover {
+      border-color: var(--accent-border);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .category-badge {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background-color: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+    }
+
+    /* CSS-заглушки фото на Шаге 2 (мягкий градиент + геометрический силуэт) */
+    .model-stub {
+      height: 160px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(24, 26, 31, 0.06);
+    }
+
+    .stub-tone-1 {
+      background: linear-gradient(135deg, #e9edf5 0%, #dce3ef 100%);
+    }
+
+    .stub-tone-2 {
+      background: linear-gradient(135deg, #ecebe8 0%, #dfdcd5 100%);
+    }
+
+    .stub-tone-3 {
+      background: linear-gradient(135deg, #e6eef0 0%, #d5e2e6 100%);
+    }
+
+    .sil-wardrobe,
+    .sil-kitchen,
+    .sil-storage {
+      transition: transform 280ms var(--ease-out);
+    }
+
+    .card:hover .sil-wardrobe,
+    .card:hover .sil-kitchen,
+    .card:hover .sil-storage {
+      transform: translateY(-3px) scale(1.025);
+    }
+
+    /* Геометрический силуэт: Шкаф */
+    .sil-wardrobe {
+      width: 114px;
+      height: 114px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 2px solid rgba(24, 26, 31, 0.22);
+      border-radius: 4px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      padding: 5px;
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.06);
+    }
+
+    .sil-wardrobe span {
+      border: 1px solid rgba(24, 26, 31, 0.16);
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .sil-wardrobe span::after {
+      content: "";
+      position: absolute;
+      top: 42%;
+      right: 4px;
+      width: 2px;
+      height: 14px;
+      border-radius: 2px;
+      background-color: rgba(24, 26, 31, 0.35);
+    }
+
+    /* Геометрический силуэт: Кухонный гарнитур */
+    .sil-kitchen {
+      width: 138px;
+      height: 110px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .sil-kitchen .top-row {
+      height: 36px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+
+    .sil-kitchen .bottom-row {
+      height: 50px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      border-top: 3px solid rgba(24, 26, 31, 0.34);
+      padding-top: 3px;
+    }
+
+    .sil-kitchen .top-row span,
+    .sil-kitchen .bottom-row span {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1.5px solid rgba(24, 26, 31, 0.22);
+      border-radius: 2px;
+    }
+
+    /* Геометрический силуэт: Гардеробная / стеллаж */
+    .sil-storage {
+      width: 126px;
+      height: 108px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 2px solid rgba(24, 26, 31, 0.22);
+      border-radius: 4px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 5px;
+      padding: 6px;
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.06);
+    }
+
+    .sil-storage span {
+      border: 1px solid rgba(24, 26, 31, 0.18);
+      border-radius: 2px;
+      background: rgba(238, 240, 244, 0.7);
+    }
+
+    .model-meta {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 12px;
+      margin-bottom: 14px;
+      border-top: 1px solid var(--bg-subtle);
+    }
+
+    .model-dims {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .model-price {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* =====================================================================
+       КНОПКИ (ВЫСОТА ОТ 44PX)
+       ===================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition:
+        background-color var(--t-fast) var(--ease-out),
+        border-color var(--t-fast) var(--ease-out),
+        color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-outline {
+      background-color: var(--bg-surface);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--border-strong);
+      background-color: var(--bg-subtle);
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    /* =====================================================================
+       ШАГ 3: КОМПАКТНАЯ ПЛАШКА МОДЕЛИ (БЕЗ ФОТО) И ДВУХКОЛОНОЧНЫЙ МАКЕТ
+       ===================================================================== */
+    .selected-bar {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .selected-bar-info {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .selected-bar-cat {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background-color: var(--bg-subtle);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .selected-bar-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .link-btn {
+      min-height: 40px;
+      background: none;
+      border: none;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .config-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel + .panel {
+      margin-top: 18px;
+    }
+
+    .panel-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: var(--text-primary);
+    }
+
+    .field-group {
+      margin-bottom: 20px;
+    }
+
+    .field-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    /* Карточки выбора опций (конфигурация, материал, фурнитура) */
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .option-card {
+      min-height: 56px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background-color: var(--bg-surface);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      transition:
+        border-color var(--t-fast) var(--ease-out),
+        background-color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .option-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .option-card:active {
+      transform: scale(0.985);
+    }
+
+    .option-card.selected {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+    }
+
+    .option-card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .swatch-chip {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      flex-shrink: 0;
+    }
+
+    .option-card-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Слайдеры и числовые поля габаритов */
+    .dim-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    /* Плавное раскрытие/сворачивание поля второй стороны через CSS Grid */
+    .dim-collapse {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-top: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition:
+        grid-template-rows 0.32s var(--ease-out),
+        opacity 240ms var(--ease-out),
+        margin-top 0.32s var(--ease-out),
+        transform 0.32s var(--ease-out);
+    }
+
+    .dim-collapse.is-open {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin-top: 14px;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .dim-collapse-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .dim-box {
+      background-color: var(--bg-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .dim-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .dim-controls input[type="range"] {
+      flex: 1;
+      height: 6px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .dim-num-wrap {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding-right: 10px;
+    }
+
+    .dim-num-wrap:focus-within {
+      border-color: var(--accent);
+    }
+
+    .dim-num-wrap input[type="number"] {
+      width: 68px;
+      height: 42px;
+      border: none;
+      background: transparent;
+      text-align: right;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding: 0 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dim-num-wrap input[type="number"]:focus {
+      outline: none;
+    }
+
+    .dim-unit {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .dim-bounds {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .size-hint {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background-color: var(--bg-subtle);
+      border: 1px solid transparent;
+      transition:
+        background-color 220ms var(--ease-out),
+        color 220ms var(--ease-out),
+        border-color 220ms var(--ease-out);
+    }
+
+    .size-hint.custom-warn {
+      background-color: var(--warn-bg);
+      border-color: var(--warn-border);
+      color: var(--warn-text);
+      font-weight: 500;
+    }
+
+    /* Чекбоксы дополнительных опций */
+    .check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .check-item {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      transition:
+        background-color var(--t-fast) var(--ease-out),
+        border-color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .check-item:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    .check-item:active {
+      transform: scale(0.985);
+    }
+
+    .check-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .check-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .check-item-price {
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* =====================================================================
+       ПРАВАЯ КОЛОНКА: ИТОГОВАЯ ЦЕНА И ФОРМА ЗАЯВКИ
+       ===================================================================== */
+    .sticky-summary {
+      position: sticky;
+      top: 20px;
+    }
+
+    .price-card {
+      background-color: var(--bg-surface);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .price-caption {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .price-total {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .price-range {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .breakdown {
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 0;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--text-secondary);
+    }
+
+    .breakdown-row strong {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .input-control {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--text-primary);
+      background-color: var(--bg-surface);
+      transition: border-color var(--t-fast) var(--ease-out);
+    }
+
+    .input-control:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    textarea.input-control {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    .consent-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
+    .consent-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    /* Скрытое honeypot-поле от спама */
+    .hp-trap {
+      position: absolute !important;
+      left: -9999px !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Сообщение об ошибке валидации */
+    .form-error {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background-color: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
+      font-size: 13px;
+    }
+
+    .form-error.visible {
+      display: block;
+    }
+
+    /* Плавное разворачивание блока результата отправки через CSS Grid */
+    .result-box {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-top: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      border-radius: var(--radius-md);
+      background-color: var(--success-bg);
+      border: 1px solid transparent;
+      color: var(--success-text);
+      font-size: 14px;
+      transition:
+        grid-template-rows 0.32s var(--ease-out),
+        opacity 260ms var(--ease-out),
+        margin-top 0.32s var(--ease-out),
+        transform 0.32s var(--ease-out),
+        border-color 260ms var(--ease-out);
+    }
+
+    .result-box.visible {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin-top: 18px;
+      transform: translateY(0);
+      pointer-events: auto;
+      border-color: var(--success-border);
+    }
+
+    .result-box-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .result-box-content {
+      padding: 16px;
+    }
+
+    .result-box h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .result-preview {
+      margin-top: 10px;
+      padding: 12px;
+      background-color: #ffffff;
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .copy-btn {
+      margin-top: 10px;
+      min-height: 44px;
+      width: 100%;
+      background-color: #ffffff;
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-sm);
+      color: var(--success-text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition:
+        background-color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .copy-btn:hover {
+      background-color: #f0fdf4;
+    }
+
+    .copy-btn:active {
+      transform: scale(0.985);
+    }
+
+    /* =====================================================================
+       ПОДДЕРЖКА НАСТРОЙКИ REDUCED MOTION
+       ===================================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* =====================================================================
+       АДАПТИВНАЯ ВЁРСТКА ДЛЯ ПЛАНШЕТОВ И СМАРТФОНОВ
+       ===================================================================== */
+    @media (max-width: 920px) {
+      .config-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sticky-summary {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+
+      .stepper {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .container {
+        padding: 20px 16px 56px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Шапка с текстовым логотипом без внешних картинок -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#" class="brand-logo" onclick="goToStep(1); return false;">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span id="brand-name-text">Ваша компания</span>
+      </a>
+      <div class="topbar-note" id="header-subtitle">Онлайн-калькулятор стоимости мебели</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Заголовок страницы -->
+    <section class="hero">
+      <h1 id="hero-title">Расчёт стоимости мебели по вашим параметрам</h1>
+      <p id="hero-subtitle">Выберите тип изделия и базовую модель, укажите размеры и материалы — расчёт обновится автоматически.</p>
+    </section>
+
+    <!-- Кликабельный индикатор 3 шагов и анимированная полоса прогресса -->
+    <div class="stepper-wrap">
+      <nav class="stepper" aria-label="Этапы расчёта">
+        <button type="button" class="step-pill active" id="nav-step-1" onclick="goToStep(1)">
+          <span class="step-num">1</span>
+          <span>1. Тип изделия</span>
+        </button>
+        <button type="button" class="step-pill" id="nav-step-2" onclick="goToStep(2)" disabled>
+          <span class="step-num">2</span>
+          <span>2. Выбор модели</span>
+        </button>
+        <button type="button" class="step-pill" id="nav-step-3" onclick="goToStep(3)" disabled>
+          <span class="step-num">3</span>
+          <span>3. Параметры и заявка</span>
+        </button>
+      </nav>
+      <div class="stepper-track" aria-hidden="true">
+        <div class="stepper-progress" id="stepper-progress"></div>
+      </div>
+    </div>
+
+    <div class="screens-viewport">
+      <!-- ШАГ 1: Выбор типа изделия из карточек -->
+      <section class="screen active" id="screen-1" aria-labelledby="step1-heading">
+        <div class="section-head">
+          <h2 class="section-title" id="step1-heading">Выберите тип изделия</h2>
+        </div>
+        <div class="cards-grid" id="categories-grid"></div>
+      </section>
+
+      <!-- ШАГ 2: Выбор модели из карточек с CSS-заглушками -->
+      <section class="screen" id="screen-2" aria-labelledby="models-section-title">
+        <div class="section-head">
+          <h2 class="section-title" id="models-section-title">Выберите модель</h2>
+          <button type="button" class="btn btn-outline" onclick="goToStep(1)">← Назад к типам изделий</button>
+        </div>
+        <div class="cards-grid" id="models-grid"></div>
+      </section>
+
+      <!-- ШАГ 3: Настройка параметров выбранной модели (БЕЗ фото) и форма заявки -->
+      <section class="screen" id="screen-3" aria-label="Параметры модели и заявка">
+        <!-- Компактная плашка выбранной модели без изображения -->
+        <div class="selected-bar">
+          <div class="selected-bar-info">
+            <span class="selected-bar-cat" id="selected-cat-badge">Категория</span>
+            <span class="selected-bar-name" id="selected-model-title">Название модели</span>
+          </div>
+          <button type="button" class="link-btn" onclick="goToStep(2)">Сменить модель</button>
+        </div>
+
+        <div class="config-layout">
+          <!-- Левая колонка: параметры изделия -->
+          <div>
+            <div class="panel">
+              <h2 class="panel-title">1. Конструктив и габариты</h2>
+
+              <div class="field-group">
+                <label class="field-label">Конфигурация</label>
+                <div class="option-grid" id="layouts-grid" role="radiogroup" aria-label="Конфигурация"></div>
+              </div>
+
+              <div class="field-group">
+                <div class="dim-grid">
+                  <!-- Ширина / первая сторона -->
+                  <div class="dim-box">
+                    <label class="field-label" for="width-num" id="width-label">Ширина изделия</label>
+                    <div class="dim-controls">
+                      <input type="range" id="width-range" aria-label="Ширина ползунок" oninput="syncDimension('width', this.value, false)" />
+                      <div class="dim-num-wrap">
+                        <input type="number" id="width-num" inputmode="numeric" oninput="syncDimension('width', this.value, true)" />
+                        <span class="dim-unit">см</span>
+                      </div>
+                    </div>
+                    <div class="dim-bounds" id="width-bounds"></div>
+                  </div>
+
+                  <!-- Высота изделия -->
+                  <div class="dim-box">
+                    <label class="field-label" for="height-num">Высота изделия</label>
+                    <div class="dim-controls">
+                      <input type="range" id="height-range" aria-label="Высота ползунок" oninput="syncDimension('height', this.value, false)" />
+                      <div class="dim-num-wrap">
+                        <input type="number" id="height-num" inputmode="numeric" oninput="syncDimension('height', this.value, true)" />
+                        <span class="dim-unit">см</span>
+                      </div>
+                    </div>
+                    <div class="dim-bounds" id="height-bounds"></div>
+                  </div>
+                </div>
+
+                <!-- Вторая сторона с плавным раскрытием через CSS Grid (только для угловой конфигурации) -->
+                <div class="dim-collapse" id="side2-collapse" aria-hidden="true">
+                  <div class="dim-collapse-inner">
+                    <div class="dim-box">
+                      <label class="field-label" for="side2-num">Длина второй стороны</label>
+                      <div class="dim-controls">
+                        <input type="range" id="side2-range" aria-label="Вторая сторона ползунок" oninput="syncDimension('side2', this.value, false)" />
+                        <div class="dim-num-wrap">
+                          <input type="number" id="side2-num" inputmode="numeric" oninput="syncDimension('side2', this.value, true)" />
+                          <span class="dim-unit">см</span>
+                        </div>
+                      </div>
+                      <div class="dim-bounds" id="side2-bounds"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="size-hint" id="custom-size-note" role="status" aria-live="polite">
+                  Изготовление по индивидуальным размерам с точностью до сантиметра.
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">2. Материалы, фурнитура и опции</h2>
+
+              <div class="field-group">
+                <label class="field-label">Материал фасадов</label>
+                <div class="option-grid" id="materials-grid" role="radiogroup" aria-label="Материал фасадов"></div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Фурнитура и механизмы</label>
+                <div class="option-grid" id="hardware-grid" role="radiogroup" aria-label="Фурнитура"></div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Дополнительные опции</label>
+                <div class="check-list" id="extras-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Правая колонка: крупный блок итоговой цены и форма заявки -->
+          <aside class="sticky-summary" aria-label="Расчёт и отправка заявки">
+            <div class="price-card">
+              <div class="price-caption">Ориентировочная стоимость</div>
+              <div class="price-total" id="total-price" aria-live="polite">0 ₽</div>
+              <div class="price-range" id="price-range-text">Диапазон с учётом комплектации</div>
+
+              <div class="breakdown">
+                <div class="breakdown-row">
+                  <span>База и габариты:</span>
+                  <strong id="bd-base">0 ₽</strong>
+                </div>
+                <div class="breakdown-row">
+                  <span>Конструктив и материал:</span>
+                  <strong id="bd-material">0 ₽</strong>
+                </div>
+                <div class="breakdown-row">
+                  <span>Фурнитура и опции:</span>
+                  <strong id="bd-options">0 ₽</strong>
+                </div>
+              </div>
+
+              <form id="lead-form" novalidate onsubmit="submitLead(event)">
+                <!-- Скрытое антиспам-поле (honeypot) -->
+                <div class="hp-trap" aria-hidden="true">
+                  <label for="hp-website">Ваш сайт</label>
+                  <input type="text" id="hp-website" name="company_website" tabindex="-1" autocomplete="off" />
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="lead-name">Ваше имя *</label>
+                  <input type="text" id="lead-name" class="input-control" required placeholder="Например, Алексей" />
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="lead-phone">Телефон для расчёта *</label>
+                  <input type="tel" id="lead-phone" class="input-control" inputmode="tel" required
+                         oninput="formatPhoneInput(this)" placeholder="+7 (900) 000-00-00" />
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="lead-comment">Комментарий</label>
+                  <textarea id="lead-comment" class="input-control" placeholder="Пожелания по цвету, срокам или доставке"></textarea>
+                </div>
+
+                <label class="consent-row">
+                  <input type="checkbox" id="lead-consent" />
+                  <span>Согласен на обработку персональных данных для расчёта стоимости заказа</span>
+                </label>
+
+                <div class="form-error" id="form-error" role="alert" aria-live="assertive"></div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="submit-btn">
+                  Отправить заявку на расчёт
+                </button>
+              </form>
+
+              <div class="result-box" id="result-box" role="status" aria-live="polite">
+                <div class="result-box-inner">
+                  <div class="result-box-content">
+                    <h4 id="result-title">Заявка сформирована</h4>
+                    <p id="result-desc"></p>
+                    <div class="result-preview" id="result-preview"></div>
+                    <button type="button" class="copy-btn" id="copy-btn" onclick="copyOrderText()">
+                      Скопировать текст заявки
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    /* =====================================================================
+       ЕДИНЫЙ ОБЪЕКТ НАСТРОЕК (CONFIG)
+       Чтобы адаптировать калькулятор под нового клиента, меняйте только этот блок
+       ===================================================================== */
+    const CONFIG = {
+      // 1. Брендинг и заголовки
+      companyName: 'Ваша компания',
+      accentColor: '#2563EB', // Обновляет CSS-переменную --accent в :root одной строкой
+      headerSubtitle: 'Онлайн-калькулятор стоимости мебели',
+      heroTitle: 'Расчёт стоимости мебели по вашим параметрам',
+      heroSubtitle: 'Выберите тип изделия и базовую модель, укажите размеры и материалы — расчёт обновится автоматически.',
+
+      // 2. Типы изделий (3 категории)
+      categories: [
+        {
+          id: 'wardrobes',
+          badge: 'Хранение',
+          title: 'Шкафы на заказ',
+          description: 'Корпусные, встроенные, распашные и шкафы-купе по индивидуальным габаритам.'
+        },
+        {
+          id: 'kitchens',
+          badge: 'Кухонная зона',
+          title: 'Кухонные гарнитуры',
+          description: 'Прямые и угловые кухни с выбором фасадов, фурнитуры и внутреннего наполнения.'
+        },
+        {
+          id: 'storage',
+          badge: 'Интерьер',
+          title: 'Гардеробные и комоды',
+          description: 'Системы хранения, прихожие, стеллажи и комоды под планировку помещения.'
+        }
+      ],
+
+      // 3. Модели по категориям (8 моделей: 3 шкафа, 3 кухни, 2 системы хранения)
+      // silhouette: 'wardrobe' | 'kitchen' | 'storage'
+      // tone: 'stub-tone-1' | 'stub-tone-2' | 'stub-tone-3'
+      models: [
+        // Шкафы на заказ (3 модели)
+        {
+          id: 'w-kupe',
+          categoryId: 'wardrobes',
+          title: 'Шкаф-купе «Стандарт»',
+          subtitle: 'Две раздвижные двери, секция со штангой и вместительные полки для белья.',
+          basePrice: 42000,
+          defaultWidth: 160,
+          defaultHeight: 230,
+          silhouette: 'wardrobe',
+          tone: 'stub-tone-1'
+        },
+        {
+          id: 'w-swing',
+          categoryId: 'wardrobes',
+          title: 'Распашной шкаф «Классика»',
+          subtitle: 'Трёхстворчатый шкаф с выдвижными ящиками и антресольной полкой.',
+          basePrice: 49000,
+          defaultWidth: 180,
+          defaultHeight: 240,
+          silhouette: 'wardrobe',
+          tone: 'stub-tone-2'
+        },
+        {
+          id: 'w-builtin',
+          categoryId: 'wardrobes',
+          title: 'Встроенный шкаф в нишу',
+          subtitle: 'Точная подгонка в нишу или до потолка без лишних зазоров.',
+          basePrice: 54000,
+          defaultWidth: 200,
+          defaultHeight: 250,
+          silhouette: 'wardrobe',
+          tone: 'stub-tone-3'
+        },
+
+        // Кухонные гарнитуры (3 модели)
+        {
+          id: 'k-line',
+          categoryId: 'kitchens',
+          title: 'Кухня «Линия»',
+          subtitle: 'Лаконичный гарнитур с верхними модулями и влагостойкой столешницей.',
+          basePrice: 78000,
+          defaultWidth: 240,
+          defaultHeight: 215,
+          silhouette: 'kitchen',
+          tone: 'stub-tone-2'
+        },
+        {
+          id: 'k-praktik',
+          categoryId: 'kitchens',
+          title: 'Кухня «Практик»',
+          subtitle: 'Увеличенная высота верхних шкафов и продуманная зона для встраиваемой техники.',
+          basePrice: 92000,
+          defaultWidth: 280,
+          defaultHeight: 230,
+          silhouette: 'kitchen',
+          tone: 'stub-tone-1'
+        },
+        {
+          id: 'k-scandi',
+          categoryId: 'kitchens',
+          title: 'Кухня «Сканди»',
+          subtitle: 'Гладкие фасады, усиленные направляющие и эргономичная система хранения.',
+          basePrice: 105000,
+          defaultWidth: 300,
+          defaultHeight: 235,
+          silhouette: 'kitchen',
+          tone: 'stub-tone-3'
+        },
+
+        // Гардеробные и комоды (2 модели)
+        {
+          id: 's-wardrobe',
+          categoryId: 'storage',
+          title: 'Гардеробная система «Модуль»',
+          subtitle: 'Открытые стеллажи, выдвижные корзины и секции для длинной одежды.',
+          basePrice: 46000,
+          defaultWidth: 200,
+          defaultHeight: 240,
+          silhouette: 'storage',
+          tone: 'stub-tone-3'
+        },
+        {
+          id: 's-hall',
+          categoryId: 'storage',
+          title: 'Прихожая «Комфорт»',
+          subtitle: 'Секция для верхней одежды, тумба для обуви и открытая вешалка.',
+          basePrice: 36000,
+          defaultWidth: 150,
+          defaultHeight: 220,
+          silhouette: 'storage',
+          tone: 'stub-tone-2'
+        }
+      ],
+
+      // 4. Параметры, коэффициенты и надбавки расчёта
+      pricing: {
+        spreadPercent: 10, // Разброс ориентировочной цены (±10%)
+        dimensions: {
+          width: { min: 80, max: 400, step: 5, baseCm: 150, pricePerCm: 190 },
+          side2: { min: 80, max: 300, step: 5, baseCm: 120, pricePerCm: 170 },
+          height: { min: 150, max: 290, step: 5, baseCm: 220, pricePerCm: 80 }
+        },
+        layouts: [
+          { id: 'straight', title: 'Прямая', note: 'В одну линию', extraPrice: 0, hasSide2: false },
+          { id: 'corner', title: 'Угловая (Г-образная)', note: 'По двум стенам', extraPrice: 12000, hasSide2: true }
+        ],
+        materials: [
+          { id: 'ldsp', title: 'ЛДСП', note: 'Базовый вариант', multiplier: 1.0, swatch: 'linear-gradient(135deg, #dfd0bc 0%, #cfb99d 100%)' },
+          { id: 'mdf_film', title: 'МДФ плёнка', note: 'Матовая / глянец', multiplier: 1.18, swatch: 'linear-gradient(135deg, #f3f4f6 0%, #dfe3e8 100%)' },
+          { id: 'mdf_enamel', title: 'МДФ эмаль', note: 'Повышенная стойкость', multiplier: 1.35, swatch: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)' },
+          { id: 'veneer', title: 'Шпон / текстура', note: 'Натуральная текстура', multiplier: 1.5, swatch: 'repeating-linear-gradient(90deg, #b08968 0px, #9c7454 6px, #bc9676 12px)' }
+        ],
+        hardware: [
+          { id: 'base', title: 'Стандарт', note: 'Надёжная базовая фурнитура', extraPrice: 0 },
+          { id: 'soft', title: 'С доводчиками', note: 'Плавное закрывание', extraPrice: 6500 },
+          { id: 'premium', title: 'Премиум', note: 'Усиленные механизмы', extraPrice: 14500 }
+        ],
+        extras: [
+          { id: 'led', title: 'Встроенная LED-подсветка', price: 4500 },
+          { id: 'drawers', title: 'Дополнительные выдвижные ящики / корзины', price: 6000 },
+          { id: 'delivery', title: 'Доставка, подъём и сборка под ключ', price: 7500 }
+        ]
+      },
+
+      // 5. Настройки отправки заявок (заглушки под нового клиента)
+      leadDelivery: {
+        mode: 'demo', // 'demo' — тестовый показ карточки в браузере; 'webhook' — отправка POST на endpoint
+        endpoint: '', // Например: '/api/send-lead'
+        telegramBotToken: 'YOUR_TELEGRAM_BOT_TOKEN', // Использовать только на сервере, не в браузере
+        telegramChatId: 'YOUR_CHAT_ID'              // Идентификатор чата получателя заявок
+      }
+    };
+
+    /* =====================================================================
+       СОСТОЯНИЕ ПРИЛОЖЕНИЯ
+       ===================================================================== */
+    const state = {
+      step: 1,
+      visibleStep: 1,
+      categoryId: null,
+      modelId: null,
+      layoutId: 'straight',
+      width: 160,
+      side2: 120,
+      height: 230,
+      materialId: 'ldsp',
+      hardwareId: 'base',
+      extras: new Set(),
+      openedAt: Date.now()
+    };
+
+    const displayedTotals = {
+      baseAndSize: 0,
+      layoutAndMaterial: 0,
+      optionsSum: 0,
+      total: 0,
+      minRange: 0,
+      maxRange: 0
+    };
+    let priceAnimFrameId = null;
+    let stepTransitionTimer = null;
+
+    /* =====================================================================
+       ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+       ===================================================================== */
+    function formatRub(amount) {
+      return Math.round(amount).toLocaleString('ru-RU') + ' ₽';
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function shadeHexColor(hex, percent) {
+      const clean = String(hex || '').replace('#', '');
+      if (clean.length !== 6) return hex;
+      const num = parseInt(clean, 16);
+      const amt = Math.round(2.55 * percent);
+      const r = Math.min(255, Math.max(0, (num >> 16) + amt));
+      const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + amt));
+      const b = Math.min(255, Math.max(0, (num & 0x0000ff) + amt));
+      return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = String(hex || '').replace('#', '');
+      if (clean.length !== 6) return `rgba(37, 99, 235, ${alpha})`;
+      const num = parseInt(clean, 16);
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function applyConfigBranding() {
+      const root = document.documentElement;
+      root.style.setProperty('--accent', CONFIG.accentColor);
+      root.style.setProperty('--accent-hover', shadeHexColor(CONFIG.accentColor, -14));
+      root.style.setProperty('--accent-soft', hexToRgba(CONFIG.accentColor, 0.08));
+      root.style.setProperty('--accent-border', hexToRgba(CONFIG.accentColor, 0.35));
+
+      document.getElementById('brand-name-text').textContent = CONFIG.companyName;
+      document.getElementById('header-subtitle').textContent = CONFIG.headerSubtitle;
+      document.getElementById('hero-title').textContent = CONFIG.heroTitle;
+      document.getElementById('hero-subtitle').textContent = CONFIG.heroSubtitle;
+      document.title = `${CONFIG.companyName} — ${CONFIG.headerSubtitle}`;
+    }
+
+    function handleOptionKey(event, callback) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        callback();
+      }
+    }
+
+    /* =====================================================================
+       ШАГ 1: РЕНДЕР КАТЕГОРИЙ
+       ===================================================================== */
+    function renderCategories() {
+      const grid = document.getElementById('categories-grid');
+      grid.innerHTML = CONFIG.categories.map((cat, idx) => `
+        <article class="card" style="--i: ${idx};">
+          <div>
+            <span class="category-badge">${escapeHtml(cat.badge)}</span>
+            <h3>${escapeHtml(cat.title)}</h3>
+            <p>${escapeHtml(cat.description)}</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-full" onclick="selectCategory('${cat.id}')">
+            Выбрать тип изделия →
+          </button>
+        </article>
+      `).join('');
+    }
+
+    function selectCategory(categoryId) {
+      state.categoryId = categoryId;
+      const cat = CONFIG.categories.find(c => c.id === categoryId);
+      document.getElementById('models-section-title').textContent =
+        cat ? `Выберите модель: ${cat.title}` : 'Выберите модель';
+      renderModels();
+      goToStep(2);
+    }
+
+    /* =====================================================================
+       ШАГ 2: РЕНДЕР КАРТОЧЕК МОДЕЛЕЙ С CSS-ЗАГЛУШКАМИ
+       ===================================================================== */
+    function buildSilhouetteHtml(type) {
+      if (type === 'kitchen') {
+        return `
+          <div class="sil-kitchen" aria-hidden="true">
+            <div class="top-row"><span></span><span></span><span></span></div>
+            <div class="bottom-row"><span></span><span></span><span></span></div>
+          </div>
+        `;
+      }
+      if (type === 'storage') {
+        return `
+          <div class="sil-storage" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        `;
+      }
+      return `
+        <div class="sil-wardrobe" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+      `;
+    }
+
+    function renderModels() {
+      const grid = document.getElementById('models-grid');
+      const models = CONFIG.models.filter(m => m.categoryId === state.categoryId);
+
+      grid.innerHTML = models.map((model, idx) => `
+        <article class="card" style="--i: ${idx};">
+          <div>
+            <div class="model-stub ${escapeHtml(model.tone || 'stub-tone-1')}">
+              ${buildSilhouetteHtml(model.silhouette)}
+            </div>
+            <h3>${escapeHtml(model.title)}</h3>
+            <p>${escapeHtml(model.subtitle)}</p>
+          </div>
+          <div>
+            <div class="model-meta">
+              <span class="model-dims">База: ${model.defaultWidth} × ${model.defaultHeight} см</span>
+              <span class="model-price">от ${formatRub(model.basePrice)}</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-full" onclick="selectModel('${model.id}')">
+              Рассчитать эту модель
+            </button>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    /* =====================================================================
+       ШАГ 3: НАСТРОЙКА ВЫБРАННОЙ МОДЕЛИ (БЕЗ ФОТО) И РАСЧЁТ ЦЕНЫ
+       ===================================================================== */
+    function selectModel(modelId) {
+      const model = CONFIG.models.find(m => m.id === modelId);
+      if (!model) return;
+
+      state.modelId = model.id;
+      state.width = model.defaultWidth;
+      state.height = model.defaultHeight;
+      state.side2 = CONFIG.pricing.dimensions.side2.baseCm;
+      state.layoutId = CONFIG.pricing.layouts[0].id;
+      state.materialId = CONFIG.pricing.materials[0].id;
+      state.hardwareId = CONFIG.pricing.hardware[0].id;
+      state.extras.clear();
+      state.openedAt = Date.now();
+
+      const cat = CONFIG.categories.find(c => c.id === model.categoryId);
+      document.getElementById('selected-cat-badge').textContent = cat ? cat.title : '';
+      document.getElementById('selected-model-title').textContent = model.title;
+
+      hideFormError();
+      document.getElementById('result-box').classList.remove('visible');
+
+      setupDimensionControls();
+      renderLayouts();
+      renderMaterials();
+      renderHardware();
+      renderExtras();
+      updateSide2Visibility();
+      checkCustomDimensionsNotice();
+      recalculatePrice(true);
+      goToStep(3);
+    }
+
+    function setupDimensionControls() {
+      const dims = CONFIG.pricing.dimensions;
+      ['width', 'side2', 'height'].forEach(key => {
+        const cfg = dims[key];
+        const rangeEl = document.getElementById(`${key}-range`);
+        const numEl = document.getElementById(`${key}-num`);
+        const boundsEl = document.getElementById(`${key}-bounds`);
+
+        rangeEl.min = cfg.min;
+        rangeEl.max = cfg.max;
+        rangeEl.step = cfg.step;
+        rangeEl.value = state[key];
+
+        numEl.value = state[key];
+        boundsEl.innerHTML = `<span>от ${cfg.min} см</span><span>до ${cfg.max} см</span>`;
+      });
+    }
+
+    function syncDimension(key, rawValue, fromNumberInput) {
+      const cfg = CONFIG.pricing.dimensions[key];
+      const parsed = parseInt(rawValue, 10);
+
+      if (fromNumberInput) {
+        // Не блокируем нестандартные размеры при ручном вводе числа
+        state[key] = Number.isFinite(parsed) && parsed > 0 ? parsed : cfg.min;
+        const rangeEl = document.getElementById(`${key}-range`);
+        rangeEl.value = Math.min(Math.max(state[key], cfg.min), cfg.max);
+      } else {
+        state[key] = Number.isFinite(parsed) ? parsed : cfg.min;
+        document.getElementById(`${key}-num`).value = state[key];
+      }
+
+      checkCustomDimensionsNotice();
+      recalculatePrice();
+    }
+
+    function checkCustomDimensionsNotice() {
+      const dims = CONFIG.pricing.dimensions;
+      const layout = CONFIG.pricing.layouts.find(l => l.id === state.layoutId);
+
+      const isOutOfBounds =
+        state.width < dims.width.min || state.width > dims.width.max ||
+        state.height < dims.height.min || state.height > dims.height.max ||
+        (layout && layout.hasSide2 && (state.side2 < dims.side2.min || state.side2 > dims.side2.max));
+
+      const noteEl = document.getElementById('custom-size-note');
+      if (isOutOfBounds) {
+        noteEl.textContent = 'Указан нестандартный габарит — изготовим на заказ, точную стоимость подтвердит технолог.';
+        noteEl.classList.add('custom-warn');
+      } else {
+        noteEl.textContent = 'Изготовление по индивидуальным размерам с точностью до сантиметра.';
+        noteEl.classList.remove('custom-warn');
+      }
+    }
+
+    function renderLayouts() {
+      const grid = document.getElementById('layouts-grid');
+      grid.innerHTML = CONFIG.pricing.layouts.map(item => {
+        const selected = state.layoutId === item.id;
+        return `
+          <div class="option-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected}" tabindex="0"
+               onclick="setLayout('${item.id}')" onkeydown="handleOptionKey(event, () => setLayout('${item.id}'))">
+            <div class="option-card-top">${escapeHtml(item.title)}</div>
+            <div class="option-card-sub">
+              ${escapeHtml(item.note)}${item.extraPrice ? ' (+' + formatRub(item.extraPrice) + ')' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setLayout(id) {
+      state.layoutId = id;
+      renderLayouts();
+      updateSide2Visibility();
+      checkCustomDimensionsNotice();
+      recalculatePrice();
+    }
+
+    function updateSide2Visibility() {
+      const layout = CONFIG.pricing.layouts.find(l => l.id === state.layoutId);
+      const hasSide2 = Boolean(layout && layout.hasSide2);
+      const collapseEl = document.getElementById('side2-collapse');
+      collapseEl.classList.toggle('is-open', hasSide2);
+      collapseEl.setAttribute('aria-hidden', String(!hasSide2));
+      document.getElementById('width-label').textContent = hasSide2 ? 'Длина первой стороны' : 'Ширина изделия';
+    }
+
+    function renderMaterials() {
+      const grid = document.getElementById('materials-grid');
+      grid.innerHTML = CONFIG.pricing.materials.map(mat => {
+        const selected = state.materialId === mat.id;
+        return `
+          <div class="option-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected}" tabindex="0"
+               onclick="setMaterial('${mat.id}')" onkeydown="handleOptionKey(event, () => setMaterial('${mat.id}'))">
+            <div class="option-card-top">
+              <span class="swatch-chip" style="background: ${mat.swatch};"></span>
+              <span>${escapeHtml(mat.title)}</span>
+            </div>
+            <div class="option-card-sub">${escapeHtml(mat.note)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setMaterial(id) {
+      state.materialId = id;
+      renderMaterials();
+      recalculatePrice();
+    }
+
+    function renderHardware() {
+      const grid = document.getElementById('hardware-grid');
+      grid.innerHTML = CONFIG.pricing.hardware.map(hw => {
+        const selected = state.hardwareId === hw.id;
+        return `
+          <div class="option-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected}" tabindex="0"
+               onclick="setHardware('${hw.id}')" onkeydown="handleOptionKey(event, () => setHardware('${hw.id}'))">
+            <div class="option-card-top">${escapeHtml(hw.title)}</div>
+            <div class="option-card-sub">${hw.extraPrice ? '+' + formatRub(hw.extraPrice) : escapeHtml(hw.note)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setHardware(id) {
+      state.hardwareId = id;
+      renderHardware();
+      recalculatePrice();
+    }
+
+    function renderExtras() {
+      const list = document.getElementById('extras-list');
+      list.innerHTML = CONFIG.pricing.extras.map(ex => `
+        <label class="check-item">
+          <span class="check-item-left">
+            <input type="checkbox" ${state.extras.has(ex.id) ? 'checked' : ''} onchange="toggleExtra('${ex.id}', this.checked)" />
+            <span>${escapeHtml(ex.title)}</span>
+          </span>
+          <span class="check-item-price">+${formatRub(ex.price)}</span>
+        </label>
+      `).join('');
+    }
+
+    function toggleExtra(id, isChecked) {
+      if (isChecked) {
+        state.extras.add(id);
+      } else {
+        state.extras.delete(id);
+      }
+      recalculatePrice();
+    }
+
+    function calculateTotals() {
+      const model = CONFIG.models.find(m => m.id === state.modelId);
+      const layout = CONFIG.pricing.layouts.find(l => l.id === state.layoutId);
+      const material = CONFIG.pricing.materials.find(m => m.id === state.materialId);
+      const hardware = CONFIG.pricing.hardware.find(h => h.id === state.hardwareId);
+      const dims = CONFIG.pricing.dimensions;
+
+      const widthDelta = (state.width - dims.width.baseCm) * dims.width.pricePerCm;
+      const side2Delta = layout && layout.hasSide2 ? state.side2 * dims.side2.pricePerCm : 0;
+      const heightDelta = (state.height - dims.height.baseCm) * dims.height.pricePerCm;
+
+      const rawBaseAndSize = model.basePrice + widthDelta + side2Delta + heightDelta;
+      const baseAndSize = Math.max(model.basePrice * 0.7, rawBaseAndSize);
+
+      const layoutExtra = layout ? layout.extraPrice : 0;
+      const withLayout = baseAndSize + layoutExtra;
+      const materialDelta = withLayout * ((material ? material.multiplier : 1) - 1);
+      const layoutAndMaterial = layoutExtra + materialDelta;
+
+      let extrasSum = 0;
+      state.extras.forEach(exId => {
+        const found = CONFIG.pricing.extras.find(e => e.id === exId);
+        if (found) extrasSum += found.price;
+      });
+      const optionsSum = (hardware ? hardware.extraPrice : 0) + extrasSum;
+
+      const total = Math.round((withLayout + materialDelta + optionsSum) / 100) * 100;
+      const spread = CONFIG.pricing.spreadPercent / 100;
+      const minRange = Math.round((total * (1 - spread)) / 500) * 500;
+      const maxRange = Math.round((total * (1 + spread)) / 500) * 500;
+
+      return {
+        baseAndSize,
+        layoutAndMaterial,
+        optionsSum,
+        total,
+        minRange,
+        maxRange
+      };
+    }
+
+    function applyDisplayedTotals(vals) {
+      document.getElementById('total-price').textContent = formatRub(vals.total);
+      document.getElementById('price-range-text').textContent =
+        `Диапазон (±${CONFIG.pricing.spreadPercent}%): от ${formatRub(vals.minRange)} до ${formatRub(vals.maxRange)}`;
+      document.getElementById('bd-base').textContent = formatRub(vals.baseAndSize);
+      document.getElementById('bd-material').textContent = formatRub(vals.layoutAndMaterial);
+      document.getElementById('bd-options').textContent = formatRub(vals.optionsSum);
+    }
+
+    function recalculatePrice(immediate = false) {
+      const target = calculateTotals();
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (priceAnimFrameId) {
+        cancelAnimationFrame(priceAnimFrameId);
+        priceAnimFrameId = null;
+      }
+
+      if (immediate || prefersReducedMotion) {
+        Object.assign(displayedTotals, target);
+        applyDisplayedTotals(displayedTotals);
+        return;
+      }
+
+      const startVals = { ...displayedTotals };
+      const startTime = performance.now();
+      const duration = 240;
+
+      function tick(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        for (const key of Object.keys(target)) {
+          displayedTotals[key] = startVals[key] + (target[key] - startVals[key]) * eased;
+        }
+
+        applyDisplayedTotals(displayedTotals);
+
+        if (progress < 1) {
+          priceAnimFrameId = requestAnimationFrame(tick);
+        } else {
+          Object.assign(displayedTotals, target);
+          applyDisplayedTotals(displayedTotals);
+          priceAnimFrameId = null;
+        }
+      }
+
+      priceAnimFrameId = requestAnimationFrame(tick);
+    }
+
+    /* =====================================================================
+       ДВУХФАЗНАЯ НАПРАВЛЕННАЯ АНИМАЦИЯ МЕЖДУ ОКНАМИ 1, 2 И 3
+       ===================================================================== */
+    function updateStepperUI(targetStep) {
+      const progressEl = document.getElementById('stepper-progress');
+      if (progressEl) {
+        progressEl.style.width = `${(targetStep / 3) * 100}%`;
+      }
+
+      [1, 2, 3].forEach(num => {
+        const pill = document.getElementById(`nav-step-${num}`);
+        pill.classList.toggle('active', num === targetStep);
+        pill.classList.toggle('done', num < targetStep);
+
+        if (num === 1) pill.disabled = false;
+        if (num === 2) pill.disabled = !state.categoryId;
+        if (num === 3) pill.disabled = !state.modelId;
+      });
+    }
+
+    function replayCardCascade(screenEl) {
+      const cards = screenEl.querySelectorAll('.card');
+      cards.forEach((card, idx) => {
+        card.style.setProperty('--i', idx);
+        card.style.animation = 'none';
+        void card.offsetWidth;
+        card.style.animation = '';
+      });
+    }
+
+    function activateScreenImmediately(targetStep, isForward, animateEnter) {
+      [1, 2, 3].forEach(num => {
+        const scr = document.getElementById(`screen-${num}`);
+        scr.classList.remove('active', 'exit-forward', 'exit-backward', 'enter-forward', 'enter-backward');
+        if (num === targetStep) {
+          scr.classList.add('active');
+          if (animateEnter) {
+            void scr.offsetWidth;
+            scr.classList.add(isForward ? 'enter-forward' : 'enter-backward');
+          }
+          replayCardCascade(scr);
+        }
+      });
+      state.visibleStep = targetStep;
+    }
+
+    function goToStep(targetStep) {
+      if (targetStep === 2 && !state.categoryId) return;
+      if (targetStep === 3 && !state.modelId) return;
+
+      // Если уже на целевом шаге и нет незавершённого перехода — ничего не делаем
+      if (targetStep === state.step && state.visibleStep === targetStep && !stepTransitionTimer) {
+        return;
+      }
+
+      const currentVisibleStep = state.visibleStep;
+      const isForward = targetStep >= currentVisibleStep;
+      state.step = targetStep;
+
+      // Мгновенно обновляем прогресс-бар и индикаторы шагов
+      updateStepperUI(targetStep);
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Безопасная очистка предыдущего таймера при быстрых повторных кликах
+      if (stepTransitionTimer) {
+        clearTimeout(stepTransitionTimer);
+        stepTransitionTimer = null;
+      }
+
+      if (prefersReducedMotion || currentVisibleStep === targetStep) {
+        activateScreenImmediately(targetStep, isForward, !prefersReducedMotion);
+        window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+        return;
+      }
+
+      // Фаза 1: плавный уход текущего видимого окна
+      [1, 2, 3].forEach(num => {
+        const scr = document.getElementById(`screen-${num}`);
+        scr.classList.remove('exit-forward', 'exit-backward', 'enter-forward', 'enter-backward');
+        if (num === currentVisibleStep) {
+          scr.classList.add('active');
+          void scr.offsetWidth;
+          scr.classList.add(isForward ? 'exit-forward' : 'exit-backward');
+        } else {
+          scr.classList.remove('active');
+        }
+      });
+
+      // Фаза 2: появление целевого окна после завершения выхода (180мс)
+      stepTransitionTimer = setTimeout(() => {
+        stepTransitionTimer = null;
+        activateScreenImmediately(targetStep, isForward, true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 175);
+    }
+
+    /* =====================================================================
+       МАСКА ТЕЛЕФОНА, ВАЛИДАЦИЯ, АНТИСПАМ И ОТПРАВКА ЗАЯВКИ
+       ===================================================================== */
+    function formatPhoneInput(input) {
+      let digits = input.value.replace(/\D/g, '');
+      if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+      if (digits.length > 0 && !digits.startsWith('7')) digits = '7' + digits;
+      digits = digits.slice(0, 11);
+
+      let formatted = '';
+      if (digits.length > 0) formatted = '+7';
+      if (digits.length > 1) formatted += ' (' + digits.slice(1, 4);
+      if (digits.length >= 4) formatted += ') ' + digits.slice(4, 7);
+      if (digits.length >= 7) formatted += '-' + digits.slice(7, 9);
+      if (digits.length >= 9) formatted += '-' + digits.slice(9, 11);
+
+      input.value = formatted;
+    }
+
+    function showFormError(message) {
+      const box = document.getElementById('form-error');
+      box.textContent = message;
+      box.classList.add('visible');
+    }
+
+    function hideFormError() {
+      const box = document.getElementById('form-error');
+      box.textContent = '';
+      box.classList.remove('visible');
+    }
+
+    function generateOrderNumber() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = pad(now.getMonth() + 1);
+      const dd = pad(now.getDate());
+      const hh = pad(now.getHours());
+      const min = pad(now.getMinutes());
+      return `ЗК-${yy}${mm}${dd}-${hh}${min}`;
+    }
+
+    async function submitLead(event) {
+      event.preventDefault();
+      hideFormError();
+
+      // 1. Антиспам: проверка скрытого honeypot-поля и минимального времени заполнения (2.5 сек)
+      const hpValue = document.getElementById('hp-website').value;
+      if (hpValue && hpValue.trim() !== '') {
+        return;
+      }
+      if (Date.now() - state.openedAt < 2500) {
+        showFormError('Форма заполнена слишком быстро. Пожалуйста, проверьте параметры и повторите отправку.');
+        return;
+      }
+
+      // 2. Валидация обязательных полей
+      const nameVal = document.getElementById('lead-name').value.trim();
+      const phoneVal = document.getElementById('lead-phone').value.trim();
+      const phoneDigits = phoneVal.replace(/\D/g, '');
+      const commentVal = document.getElementById('lead-comment').value.trim();
+      const consentChecked = document.getElementById('lead-consent').checked;
+
+      if (!nameVal) {
+        showFormError('Укажите ваше имя.');
+        document.getElementById('lead-name').focus();
+        return;
+      }
+
+      if (phoneDigits.length < 11) {
+        showFormError('Введите корректный номер телефона из 11 цифр.');
+        document.getElementById('lead-phone').focus();
+        return;
+      }
+
+      if (!consentChecked) {
+        showFormError('Отметьте согласие на обработку персональных данных.');
+        document.getElementById('lead-consent').focus();
+        return;
+      }
+
+      const model = CONFIG.models.find(m => m.id === state.modelId);
+      const cat = CONFIG.categories.find(c => c.id === state.categoryId);
+      const layout = CONFIG.pricing.layouts.find(l => l.id === state.layoutId);
+      const material = CONFIG.pricing.materials.find(m => m.id === state.materialId);
+      const hardware = CONFIG.pricing.hardware.find(h => h.id === state.hardwareId);
+
+      const extrasTitles = Array.from(state.extras).map(id => {
+        const item = CONFIG.pricing.extras.find(e => e.id === id);
+        return item ? item.title : id;
+      });
+
+      const totals = calculateTotals();
+      const orderId = generateOrderNumber();
+
+      const dimensionsText = layout.hasSide2
+        ? `${state.width} × ${state.side2} см, высота ${state.height} см`
+        : `ширина ${state.width} см, высота ${state.height} см`;
+
+      const payload = {
+        orderId,
+        company: CONFIG.companyName,
+        category: cat ? cat.title : '',
+        modelId: model.id,
+        modelTitle: model.title,
+        layout: layout.title,
+        dimensions: dimensionsText,
+        material: material.title,
+        hardware: hardware.title,
+        extras: extrasTitles.length ? extrasTitles.join(', ') : 'Без доп. опций',
+        estimatedTotal: totals.total,
+        estimatedRange: `от ${formatRub(totals.minRange)} до ${formatRub(totals.maxRange)}`,
+        clientName: nameVal,
+        clientPhone: phoneVal,
+        comment: commentVal,
+        recipientChatId: CONFIG.leadDelivery.telegramChatId
+      };
+
+      const orderSummaryText = [
+        `Заявка № ${payload.orderId} (${payload.company})`,
+        `Тип изделия: ${payload.category}`,
+        `Модель: ${payload.modelTitle}`,
+        `Конструктив: ${payload.layout} (${payload.dimensions})`,
+        `Материал: ${payload.material}`,
+        `Фурнитура: ${payload.hardware}`,
+        `Доп. опции: ${payload.extras}`,
+        `Итоговый расчёт: ${formatRub(payload.estimatedTotal)} (${payload.estimatedRange})`,
+        `Клиент: ${payload.clientName}, ${payload.clientPhone}`,
+        payload.comment ? `Комментарий: ${payload.comment}` : null
+      ].filter(Boolean).join('\n');
+
+      const resultBox = document.getElementById('result-box');
+      const resultTitle = document.getElementById('result-title');
+      const resultDesc = document.getElementById('result-desc');
+      const resultPreview = document.getElementById('result-preview');
+      const submitBtn = document.getElementById('submit-btn');
+
+      if (CONFIG.leadDelivery.mode === 'webhook' && CONFIG.leadDelivery.endpoint) {
+        submitBtn.disabled = true;
+        try {
+          const response = await fetch(CONFIG.leadDelivery.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          resultTitle.textContent = `Заявка № ${orderId} отправлена`;
+          resultDesc.textContent = 'Параметры расчёта переданы менеджеру. Ожидайте звонка в ближайшее время.';
+          resultPreview.textContent = orderSummaryText;
+          resultBox.classList.add('visible');
+        } catch (err) {
+          showFormError('Не удалось отправить заявку. Проверьте адрес обработчика в CONFIG.leadDelivery.endpoint.');
+        } finally {
+          submitBtn.disabled = false;
+        }
+      } else {
+        resultTitle.textContent = `Демо-режим: заявка № ${orderId} сформирована`;
+        resultDesc.textContent = 'Ниже готовая карточка заявки для менеджера. Для реальной отправки задайте mode: "webhook" и endpoint в CONFIG.leadDelivery.';
+        resultPreview.textContent = orderSummaryText;
+        resultBox.classList.add('visible');
+      }
+    }
+
+    function copyOrderText() {
+      const text = document.getElementById('result-preview').textContent;
+      const btn = document.getElementById('copy-btn');
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+
+      try {
+        document.execCommand('copy');
+        btn.textContent = 'Текст заявки скопирован';
+        setTimeout(() => {
+          btn.textContent = 'Скопировать текст заявки';
+        }, 2000);
+      } catch (e) {
+        btn.textContent = 'Выделите текст выше и скопируйте вручную';
+      }
+
+      document.body.removeChild(ta);
+    }
+
+    /* =====================================================================
+       ГАРАНТИРОВАННАЯ ИНИЦИАЛИЗАЦИЯ ПОСЛЕ ЗАГРУЗКИ DOM
+       ===================================================================== */
+    let isInitialized = false;
+
+    function initApp() {
+      if (isInitialized) return;
+      isInitialized = true;
+      applyConfigBranding();
+      renderCategories();
+      updateStepperUI(1);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+    window.addEventListener('load', initApp);
+  </script>
+</body>
+</html>
